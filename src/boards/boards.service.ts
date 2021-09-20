@@ -1,17 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Board, BoardStatus } from './board.model';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Board } from './board.entity';
+import { BoardRepository } from './board.repository';
+import { BoardStatus } from './board.type';
 import { CreateBoardDto } from './DTOs/create-board.dto';
 
 @Injectable()
 export class BoardsService {
-  private boards: Board[] = []; // In-Memory Database
+  constructor(
+    @InjectRepository(BoardRepository)
+    private boardRespository: BoardRepository,
+  ) {}
 
-  getAllBoards(): Board[] {
-    return this.boards;
+  createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
+    return this.boardRespository.createBoard(createBoardDto);
   }
 
-  getBoard(id: string): Board {
-    const foundBoard = this.boards.find((board) => board.id === id);
+  async getAllBoards(): Promise<Board[]> {
+    return await this.boardRespository.find();
+  }
+
+  async getBoardById(id: number): Promise<Board> {
+    const foundBoard = await this.boardRespository.findOne(id);
 
     if (!foundBoard) {
       throw new NotFoundException(`Could not found a board with ID, ${id}`); // Built-in Exception
@@ -20,35 +30,23 @@ export class BoardsService {
     return foundBoard;
   }
 
-  createBoard(ceateBoardDto: CreateBoardDto): Board {
-    const { title, desc, status } = ceateBoardDto;
-    const newBoard = status
-      ? new Board(title, desc, status)
-      : new Board(title, desc);
+  async updateBoardStatus(id: number, nextStatus: BoardStatus): Promise<Board> {
+    const targetBoard = await this.getBoardById(id);
 
-    this.boards.push(newBoard);
+    targetBoard.status = nextStatus;
 
-    return newBoard;
+    await this.boardRespository.save(targetBoard);
+
+    return targetBoard;
   }
 
-  modifyBoardStatus(id: string, newStatus: BoardStatus): Board {
-    const targetBoardIndex = this.boards.findIndex((board) => board.id === id);
+  async deleteBoardById(id: number): Promise<void> {
+    const deletionResult = await this.boardRespository.delete(id); // Throws no exception even if is doesn't exist
 
-    if (targetBoardIndex < 0) {
+    if (deletionResult.affected < 1) {
       throw new NotFoundException(`Could not found a board with ID, ${id}`); // Built-in Exception
     }
 
-    const targetBoard = this.boards[targetBoardIndex];
-    const updatedBoard = { ...targetBoard, status: newStatus };
-
-    this.boards[targetBoardIndex] = updatedBoard;
-
-    return updatedBoard;
-  }
-
-  removeBoard(id: string): void {
-    const targetBoard = this.getBoard(id);
-
-    this.boards.filter((board) => board.id !== targetBoard.id);
+    return;
   }
 }
