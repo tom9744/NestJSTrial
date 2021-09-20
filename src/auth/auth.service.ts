@@ -1,12 +1,17 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { JwtService } from '@nestjs/jwt';
+
+import * as bcrypt from 'bcrypt';
+
 import { AuthCredentialsDto } from './DTOs/auth-credentials.dto';
 import { UserRepository } from './user.repository';
-import * as bcrypt from 'bcrypt';
+import { AuthResponse } from './auth.type';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private jwtService: JwtService,
     @InjectRepository(UserRepository)
     private userRepository: UserRepository,
   ) {}
@@ -15,7 +20,7 @@ export class AuthService {
     return this.userRepository.createUser(authCredentialsDto);
   }
 
-  async signIn(authCredentialsDto: AuthCredentialsDto): Promise<string> {
+  async signIn(authCredentialsDto: AuthCredentialsDto): Promise<AuthResponse> {
     const { username, password } = authCredentialsDto;
     const foundUser = await this.userRepository.findOne({ username });
 
@@ -29,6 +34,9 @@ export class AuthService {
       throw new UnauthorizedException('Wrong Password.');
     }
 
-    return `Welcome back, ${username}`;
+    const payload = { username, role: 'user' };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken };
   }
 }
