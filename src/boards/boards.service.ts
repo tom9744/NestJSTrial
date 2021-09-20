@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Board, BoardStatus } from './board.model';
-import { CreateBoardDto } from './create-board.dto';
+import { CreateBoardDto } from './DTOs/create-board.dto';
 
 @Injectable()
 export class BoardsService {
