@@ -51,11 +51,15 @@ export class BoardsService {
     return targetBoard;
   }
 
-  async deleteBoardById(id: number): Promise<void> {
-    const deletionResult = await this.boardRespository.delete(id); // Throws no exception even if is doesn't exist
+  async deleteBoardById(id: number, user: User): Promise<void> {
+    // Throws no exception even if is doesn't exist
+    const deletionResult = await this.boardRespository.delete({ id, user });
 
     if (deletionResult.affected < 1) {
-      throw new NotFoundException(`Could not found a board with ID, ${id}`); // Built-in Exception
+      // Built-in Exception
+      throw new NotFoundException(
+        `Could not found a board with ID ${id} and owned by ${user.username} `,
+      );
     }
 
     return;
