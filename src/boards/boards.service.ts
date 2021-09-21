@@ -1,9 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Board } from './board.entity';
+
+import { CreateBoardDto } from './DTOs/create-board.dto';
 import { BoardRepository } from './board.repository';
 import { BoardStatus } from './board.type';
-import { CreateBoardDto } from './DTOs/create-board.dto';
+import { Board } from './board.entity';
+import { User } from 'src/auth/user.entity';
 
 @Injectable()
 export class BoardsService {
@@ -12,12 +14,21 @@ export class BoardsService {
     private boardRespository: BoardRepository,
   ) {}
 
-  createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
-    return this.boardRespository.createBoard(createBoardDto);
+  createBoard(createBoardDto: CreateBoardDto, user: User): Promise<Board> {
+    return this.boardRespository.createBoard(createBoardDto, user);
   }
 
   async getAllBoards(): Promise<Board[]> {
     return await this.boardRespository.find();
+  }
+
+  async getAllBoardsByUser(user: User): Promise<Board[]> {
+    // Using a raw SQL query syntex
+    const query = this.boardRespository
+      .createQueryBuilder('board')
+      .where('board.userId = :userId', { userId: user.id });
+
+    return await query.getMany();
   }
 
   async getBoardById(id: number): Promise<Board> {

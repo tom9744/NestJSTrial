@@ -7,29 +7,42 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
 import { BoardStatus } from './board.type';
 import { BoardsService } from './boards.service';
 import { BoardStatusValidationPipe } from './pipes/board-status-validation.pipe';
 import { CreateBoardDto } from './DTOs/create-board.dto';
+import { GetUser } from 'src/auth/get-user.decorator';
 import { Board } from './board.entity';
+import { User } from 'src/auth/user.entity';
 
 @Controller('boards')
+@UseGuards(AuthGuard()) // Impacts all the route handlers
 export class BoardsController {
-  // Dependency Injection
-  constructor(private boardsService: BoardsService) {}
+  constructor(private boardsService: BoardsService) {} // Dependency Injection
 
   @Post()
   @UsePipes(ValidationPipe)
-  createBoard(@Body() createBoardDto: CreateBoardDto): Promise<Board> {
-    return this.boardsService.createBoard(createBoardDto);
+  createBoard(
+    @Body() createBoardDto: CreateBoardDto,
+    @GetUser() user: User,
+  ): Promise<Board> {
+    return this.boardsService.createBoard(createBoardDto, user);
   }
 
   @Get()
   readAllBoards(): Promise<Board[]> {
     return this.boardsService.getAllBoards();
+  }
+
+  @Get('/my-boards')
+  readAllBoardsByUser(@GetUser() user: User): Promise<Board[]> {
+    return this.boardsService.getAllBoardsByUser(user);
   }
 
   @Get('/:id')
