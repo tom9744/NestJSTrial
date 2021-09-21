@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   ParseIntPipe,
   Patch,
@@ -24,6 +25,8 @@ import { User } from 'src/auth/user.entity';
 @Controller('boards')
 @UseGuards(AuthGuard()) // Impacts all the route handlers
 export class BoardsController {
+  private logger = new Logger('BoardController'); // Add a logger
+
   constructor(private boardsService: BoardsService) {} // Dependency Injection
 
   @Post()
@@ -32,21 +35,39 @@ export class BoardsController {
     @Body() createBoardDto: CreateBoardDto,
     @GetUser() user: User,
   ): Promise<Board> {
+    const serialized = JSON.stringify(createBoardDto);
+    this.logger.verbose(
+      `User "${user.username}" has tried to create a new board with the following payload: ${serialized}`,
+    );
+
     return this.boardsService.createBoard(createBoardDto, user);
   }
 
   @Get()
-  readAllBoards(): Promise<Board[]> {
+  readAllBoards(@GetUser() user: User): Promise<Board[]> {
+    this.logger.verbose(`User "${user.username}" has tried to read all boards`);
+
     return this.boardsService.getAllBoards();
   }
 
   @Get('/my-boards')
   readAllBoardsByUser(@GetUser() user: User): Promise<Board[]> {
+    this.logger.verbose(
+      `User "${user.username}" has tried to read all boards owned by itself`,
+    );
+
     return this.boardsService.getAllBoardsByUser(user);
   }
 
   @Get('/:id')
-  readBoardById(@Param('id', ParseIntPipe) id: number): Promise<Board> {
+  readBoardById(
+    @Param('id', ParseIntPipe) id: number,
+    @GetUser() user: User,
+  ): Promise<Board> {
+    this.logger.verbose(
+      `User "${user.username}" has tried to read the board with ID ${id}`,
+    );
+
     return this.boardsService.getBoardById(id);
   }
 
@@ -55,6 +76,10 @@ export class BoardsController {
     @Param('id', ParseIntPipe) id: number,
     @GetUser() user: User,
   ): Promise<void> {
+    this.logger.verbose(
+      `User "${user.username}" has tried to delete the board with ID ${id}`,
+    );
+
     return this.boardsService.deleteBoardById(id, user);
   }
 
@@ -62,7 +87,12 @@ export class BoardsController {
   updateBoard(
     @Param('id', ParseIntPipe) id: number,
     @Body('status', BoardStatusValidationPipe) status: BoardStatus,
+    @GetUser() user: User,
   ): Promise<Board> {
+    this.logger.verbose(
+      `User "${user.username}" has tried to update the board with ID ${id}`,
+    );
+
     return this.boardsService.updateBoardStatus(id, status);
   }
 }
